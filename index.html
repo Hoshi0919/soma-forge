@@ -240,6 +240,56 @@
             cursor: pointer;
             transition: all 0.2s;
         }
+                .kbd {
+            display: inline-block;
+            background: #182230;
+            color: #7dd3fc;
+            font-size: 9px;
+            font-family: monospace;
+            padding: 1px 4px;
+            border-radius: 3px;
+            border: 1px solid #29384d;
+            margin-left: 4px;
+        }
+        #alert-banner {
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(13, 18, 26, 0.92);
+            border: 1px solid #232d3d;
+            border-radius: 20px;
+            padding: 6px 18px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #94a3b8;
+            z-index: 20;
+            pointer-events: none;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        #alert-banner.danger {
+            background: rgba(76, 12, 28, 0.95);
+            border-color: #ff3366;
+            color: #fca5a5;
+            box-shadow: 0 0 20px rgba(255, 51, 102, 0.5);
+            animation: pulse-danger 0.8s infinite alternate;
+        }
+        #alert-banner.warn {
+            background: rgba(64, 38, 8, 0.95);
+            border-color: #f59e0b;
+            color: #fcd34d;
+        }
+        #alert-banner.ascended {
+            background: rgba(59, 13, 76, 0.95);
+            border-color: #c084fc;
+            color: #f0abfc;
+            box-shadow: 0 0 20px rgba(192, 132, 252, 0.5);
+        }
+
         .action-btn:hover {
             background: #9333ea;
             box-shadow: 0 0 16px rgba(147, 51, 234, 0.6);
@@ -283,21 +333,31 @@
 
     <div id="main-container">
         <div id="toolbar">
+            <div style="font-size: 11px; color: #56657a; font-weight: bold; margin-bottom: 2px;">情景挑战</div>
+            <div style="display: flex; gap: 4px; margin-bottom: 4px;">
+                <button class="tool-btn active" id="btn-scene-std" style="flex:1; padding: 4px 4px; font-size:11px;">🌱 标准</button>
+                <button class="tool-btn" id="btn-scene-crisis" style="flex:1; padding: 4px 4px; font-size:11px;">🚨 急救</button>
+                <button class="tool-btn" id="btn-scene-sandbox" style="flex:1; padding: 4px 4px; font-size:11px;">🧪 空白</button>
+            </div>
+            <div class="tool-sep"></div>
             <div style="font-size: 11px; color: #56657a; font-weight: bold; margin-bottom: 2px;">交互模式</div>
-            <button class="tool-btn active" data-mode="select">🔍 检视 / 移位</button>
-            <button class="tool-btn" data-mode="connect">🩸 嫁接血管</button>
-            <button class="tool-btn" data-mode="scalpel">🔪 手术刀 (切除/断管)</button>
+            <button class="tool-btn active" data-mode="select">🔍 检视 / 移位 <span class="kbd">1</span></button>
+            <button class="tool-btn" data-mode="connect">🩸 嫁接血管 <span class="kbd">2</span></button>
+            <button class="tool-btn" data-mode="scalpel">🔪 手术刀 <span class="kbd">3</span></button>
             <div class="tool-sep"></div>
             <div style="font-size: 11px; color: #56657a; font-weight: bold; margin-bottom: 2px;">器官植入</div>
-            <button class="tool-btn" data-spawn="MAW">👄 摄食口 (Maw)</button>
-            <button class="tool-btn" data-spawn="STOMACH">🧪 消化胃囊 (Stomach)</button>
-            <button class="tool-btn" data-spawn="LYMPH">🛡️ 淋巴滤泡 (Lymph)</button>
-            <button class="tool-btn" data-spawn="GLAND">⚡ 神经腺体 (Gland)</button>
-            <button class="tool-btn" data-spawn="BRAIN_TANK">🧠 拟态脑囊 (Brain)</button>
+            <button class="tool-btn" data-spawn="MAW">👄 摄食口 <span class="kbd">Q</span></button>
+            <button class="tool-btn" data-spawn="STOMACH">🧪 消化胃囊 <span class="kbd">W</span></button>
+            <button class="tool-btn" data-spawn="LYMPH">🛡️ 淋巴滤泡 <span class="kbd">E</span></button>
+            <button class="tool-btn" data-spawn="GLAND">⚡ 神经腺体 <span class="kbd">R</span></button>
+            <button class="tool-btn" data-spawn="BRAIN_TANK">🧠 拟态脑囊 <span class="kbd">T</span></button>
             <div class="tool-sep"></div>
-            <div style="font-size: 11px; color: #56657a; font-weight: bold; margin-bottom: 2px;">急救注射剂</div>
-            <button class="tool-btn" id="btn-adrenaline">💉 肾上腺素 (强心)</button>
-            <button class="tool-btn" id="btn-antitoxin">🧪 抗毒血清 (清毒)</button>
+            <div style="font-size: 11px; color: #56657a; font-weight: bold; margin-bottom: 2px;">活体干预</div>
+            <button class="tool-btn" id="btn-adrenaline">💉 肾上腺素 <span class="kbd">A</span></button>
+            <button class="tool-btn" id="btn-antitoxin">🧪 抗毒血清 <span class="kbd">S</span></button>
+            <button class="tool-btn" id="btn-defib" style="color: #38bdf8;">⚡ 电击除颤 <span class="kbd">D</span></button>
+            <div class="tool-sep"></div>
+            <button class="tool-btn" id="btn-pause">⏸️ 暂停模拟 <span class="kbd">Space</span></button>
         </div>
 
         <div id="inspector">
@@ -314,6 +374,7 @@
         </div>
 
         <div id="viewport">
+            <div id="alert-banner">🌱 活体稳态循环正常运转中</div>
             <canvas id="sim-canvas"></canvas>
         </div>
     </div>
@@ -382,6 +443,23 @@
                 osc.start(now);
                 osc.stop(now + 0.09);
             }
+            playDefib() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                // 电击电容充能与放电瞬态
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(35, now + 0.35);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.40);
+            }
+
             playInjection() {
                 if (!this.enabled || !this.ctx) return;
                 const now = this.ctx.currentTime;
@@ -429,34 +507,79 @@
                 this.crystalsHarvested = 0;
                 this.isAlive = true;
                 this.isAscended = false;
+                this.isPaused = false;
+                this.simSpeed = 1.0;
+                this.sepsisDuration = 0.0;
+                this.activeScenario = "standard";
 
-                this.initPreset();
+                this.loadScenario("standard");
             }
 
-            initPreset() {
-                const maw = this.addOrgan('MAW', 180, 240);
-                const stom = this.addOrgan('STOMACH', 360, 240);
-                const lym = this.addOrgan('LYMPH', 360, 420);
-                const gland = this.addOrgan('GLAND', 560, 240);
-                const brain = this.addOrgan('BRAIN_TANK', 760, 240);
+            loadScenario(name) {
+                this.organs = [];
+                this.tubes = [];
+                this.bpm = 72;
+                this.heartPhase = 0;
+                this.pulsePower = 0.25;
+                this.toxicityRatio = 0.0;
+                this.crystalsHarvested = 0;
+                this.isAlive = true;
+                this.isAscended = false;
+                this.sepsisDuration = 0.0;
+                this.activeScenario = name;
 
-                this.addTube(maw.id, stom.id);
-                this.addTube(stom.id, gland.id);
-                this.addTube(stom.id, lym.id);
-                this.addTube(gland.id, brain.id);
+                if (name === "standard") {
+                    const maw = this.addOrgan("MAW", 180, 240);
+                    const stom = this.addOrgan("STOMACH", 360, 240);
+                    const lym = this.addOrgan("LYMPH", 360, 420);
+                    const gland = this.addOrgan("GLAND", 560, 240);
+                    const brain = this.addOrgan("BRAIN_TANK", 760, 240);
 
-                maw.buffers.BIOMASS = 10.0;
+                    this.addTube(maw.id, stom.id);
+                    this.addTube(stom.id, gland.id);
+                    this.addTube(stom.id, lym.id);
+                    this.addTube(gland.id, brain.id);
+
+                    maw.buffers.BIOMASS = 10.0;
+                } else if (name === "crisis") {
+                    const maw = this.addOrgan("MAW", 180, 240);
+                    const stom = this.addOrgan("STOMACH", 360, 240);
+                    const lym = this.addOrgan("LYMPH", 360, 420);
+                    const gland = this.addOrgan("GLAND", 560, 240);
+                    const brain = this.addOrgan("BRAIN_TANK", 760, 240);
+
+                    maw.buffers.BIOMASS = 30.0;
+                    stom.buffers.BIOMASS = 15.0;
+                    stom.buffers.CHYME = 10.0;
+                    stom.buffers.TOXIN = 25.0;
+                    stom.health = "INFLAMED";
+                    stom.tumorProgress = 0.65;
+                    lym.buffers.TOXIN = 35.0;
+                    gland.buffers.TOXIN = 15.0;
+                    gland.health = "INFLAMED";
+
+                    this.addTube(maw.id, stom.id);
+                    this.addTube(stom.id, gland.id);
+                    this.addTube(stom.id, lym.id);
+                    this.addTube(gland.id, brain.id);
+
+                    this.bpm = 155;
+                    this.sepsisDuration = 18.0;
+                    this.toxicityRatio = 0.65;
+                } else if (name === "sandbox") {
+                    this.bpm = 72;
+                }
             }
 
             addOrgan(type, x, y) {
                 const organ = {
-                    id: 'org_' + Math.random().toString(36).substr(2, 9),
+                    id: "org_" + Math.random().toString(36).substr(2, 9),
                     type: type,
                     x: x,
                     y: y,
                     capacity: 50.0,
                     buffers: { BIOMASS: 0, CHYME: 0, TOXIN: 0, NEURO_FLUID: 0, NEURO_CRYSTAL: 0 },
-                    health: 'HEALTHY',
+                    health: "HEALTHY",
                     tumorProgress: 0.0,
                     congestionTicks: 0,
                     totalProcessed: 0
@@ -474,29 +597,69 @@
                 const o2 = this.organs.find(o => o.id === toId);
                 if (!o1 || !o2) return null;
 
-                const dist = Math.hypot(o2.x - o1.x, o2.y - o1.y);
+                const length = Math.hypot(o2.x - o1.x, o2.y - o1.y);
                 const tube = {
-                    id: 'tube_' + Math.random().toString(36).substr(2, 9),
+                    id: "tube_" + Math.random().toString(36).substr(2, 9),
                     fromId: fromId,
                     toId: toId,
-                    length: Math.max(60, dist),
+                    length: Math.max(50, length),
                     packets: []
                 };
                 this.tubes.push(tube);
                 return tube;
             }
 
-            removeOrgan(id) {
-                this.organs = this.organs.filter(o => o.id !== id);
-                this.tubes = this.tubes.filter(t => t.fromId !== id && t.toId !== id);
+            exciseOrgan(id) {
+                const idx = this.organs.findIndex(o => o.id === id);
+                if (idx !== -1) {
+                    this.organs.splice(idx, 1);
+                    this.tubes = this.tubes.filter(t => t.fromId !== id && t.toId !== id);
+                    audio.playScalpel();
+                }
             }
 
             removeTube(id) {
                 this.tubes = this.tubes.filter(t => t.id !== id);
             }
 
+            defibrillate() {
+                const wasDead = !this.isAlive;
+                this.isAlive = true;
+                this.bpm = 72;
+                this.sepsisDuration = Math.max(0, this.sepsisDuration - 15.0);
+                audio.playDefib();
+                return wasDead;
+            }
+
+            injectAdrenaline() {
+                if (!this.isAlive) {
+                    this.isAlive = true;
+                }
+                this.bpm = Math.min(180, this.bpm + 35);
+                this.pulsePower = Math.min(2.0, this.pulsePower + 0.5);
+                this.sepsisDuration = Math.max(0, this.sepsisDuration - 8.0);
+                audio.playInjection();
+            }
+
+            injectAntitoxin() {
+                this.organs.forEach(o => { o.buffers.TOXIN *= 0.25; });
+                this.tubes.forEach(t => {
+                    t.packets.forEach(p => { if (p.substance === "TOXIN") p.amount *= 0.25; });
+                });
+                this.sepsisDuration = Math.max(0, this.sepsisDuration - 12.0);
+                audio.playInjection();
+            }
+
             update(dt) {
-                if (!this.isAlive) return;
+                if (this.isPaused) return;
+
+                if (!this.isAlive) {
+                    this.bpm = 0;
+                    this.pulsePower = 0;
+                    return;
+                }
+
+                dt *= this.simSpeed;
 
                 const freq = this.bpm / 60.0;
                 const prevPhase = this.heartPhase;
@@ -514,7 +677,7 @@
                     const loadRatio = currentLoad / organ.capacity;
                     const toxRatio = currentLoad > 0.1 ? organ.buffers.TOXIN / currentLoad : 0;
 
-                    if (organ.health === 'TUMOROUS') {
+                    if (organ.health === "TUMOROUS") {
                         organ.buffers.TOXIN += 1.2 * dt;
                         return;
                     }
@@ -524,31 +687,30 @@
                         if (organ.congestionTicks > 30) {
                             organ.tumorProgress = Math.min(1.0, organ.tumorProgress + 0.08 * dt);
                             if (organ.tumorProgress >= 1.0) {
-                                organ.health = 'TUMOROUS';
+                                organ.health = "TUMOROUS";
                             } else {
-                                organ.health = 'INFLAMED';
+                                organ.health = "INFLAMED";
                             }
                         }
                     } else {
                         organ.congestionTicks = Math.max(0, organ.congestionTicks - 1);
                         organ.tumorProgress = Math.max(0, organ.tumorProgress - 0.03 * dt);
-                        if (organ.tumorProgress === 0 && organ.health === 'INFLAMED') {
-                            organ.health = 'HEALTHY';
+                        if (organ.tumorProgress === 0 && organ.health === "INFLAMED") {
+                            organ.health = "HEALTHY";
                         }
                     }
 
                     const speed = Math.max(0.3, this.pulsePower);
 
-                    if (organ.type === 'MAW') {
-                        // 摄食口动态反馈：如果自身充血过高，自主减速进食
+                    if (organ.type === "MAW") {
                         const feedRate = loadRatio > 0.6 ? 1.0 : 3.0;
                         organ.buffers.BIOMASS += feedRate * speed * dt;
                         if (organ.buffers.BIOMASS > 0.5) {
                             const sendAmt = Math.min(organ.buffers.BIOMASS, 3.2 * speed * dt);
                             organ.buffers.BIOMASS -= sendAmt;
-                            this.dispatchPacket(organ.id, 'BIOMASS', sendAmt);
+                            this.dispatchPacket(organ.id, "BIOMASS", sendAmt);
                         }
-                    } else if (organ.type === 'STOMACH') {
+                    } else if (organ.type === "STOMACH") {
                         const bio = organ.buffers.BIOMASS;
                         const react = Math.min(bio, 4.0 * speed * dt);
                         if (react > 0.02) {
@@ -559,20 +721,20 @@
                         if (organ.buffers.CHYME > 0.2) {
                             const amt = Math.min(organ.buffers.CHYME, 3.5 * speed * dt);
                             organ.buffers.CHYME -= amt;
-                            this.dispatchPacket(organ.id, 'CHYME', amt);
+                            this.dispatchPacket(organ.id, "CHYME", amt);
                         }
                         if (organ.buffers.TOXIN > 0.2) {
                             const amt = Math.min(organ.buffers.TOXIN, 3.0 * speed * dt);
                             organ.buffers.TOXIN -= amt;
-                            this.dispatchPacket(organ.id, 'TOXIN', amt);
+                            this.dispatchPacket(organ.id, "TOXIN", amt);
                         }
-                    } else if (organ.type === 'LYMPH') {
+                    } else if (organ.type === "LYMPH") {
                         const tox = organ.buffers.TOXIN;
                         const filtered = Math.min(tox, 6.0 * speed * dt);
                         if (filtered > 0.01) {
                             organ.buffers.TOXIN -= filtered;
                         }
-                    } else if (organ.type === 'GLAND') {
+                    } else if (organ.type === "GLAND") {
                         const eff = toxRatio > 0.1 ? 0.2 : 1.0;
                         const chyme = organ.buffers.CHYME;
                         const syn = Math.min(chyme, 3.5 * eff * speed * dt);
@@ -583,9 +745,9 @@
                         if (organ.buffers.NEURO_FLUID > 0.2) {
                             const amt = Math.min(organ.buffers.NEURO_FLUID, 3.0 * speed * dt);
                             organ.buffers.NEURO_FLUID -= amt;
-                            this.dispatchPacket(organ.id, 'NEURO_FLUID', amt);
+                            this.dispatchPacket(organ.id, "NEURO_FLUID", amt);
                         }
-                    } else if (organ.type === 'BRAIN_TANK') {
+                    } else if (organ.type === "BRAIN_TANK") {
                         const neuro = organ.buffers.NEURO_FLUID;
                         const cry = Math.min(neuro, 2.5 * speed * dt);
                         if (cry > 0.02) {
@@ -637,7 +799,7 @@
                 this.tubes.forEach(t => {
                     t.packets.forEach(p => {
                         totalFluid += p.amount;
-                        if (p.substance === 'TOXIN') totalToxin += p.amount;
+                        if (p.substance === "TOXIN") totalToxin += p.amount;
                     });
                 });
 
@@ -645,16 +807,25 @@
 
                 if (this.toxicityRatio > 0.55) {
                     this.bpm = Math.min(185, this.bpm + 10.0 * dt);
+                    this.sepsisDuration += dt;
+                    if (this.sepsisDuration > 35.0) {
+                        this.isAlive = false;
+                        this.bpm = 0;
+                        this.pulsePower = 0;
+                        return;
+                    }
                 } else if (this.toxicityRatio > 0.25) {
+                    this.sepsisDuration = Math.max(0, this.sepsisDuration - 0.5 * dt);
                     const target = 72 + (this.toxicityRatio - 0.25) * 120;
                     this.bpm += (target - this.bpm) * 0.2 * dt;
                 } else {
+                    this.sepsisDuration = Math.max(0, this.sepsisDuration - dt);
                     this.bpm += (72 - this.bpm) * 0.3 * dt;
                 }
 
                 if (this.crystalsHarvested >= 100 && this.toxicityRatio < 0.15 && !this.isAscended) {
                     this.isAscended = true;
-                    document.getElementById('ascension-modal').style.display = 'flex';
+                    document.getElementById("ascension-modal").style.display = "flex";
                 }
             }
 
@@ -667,20 +838,20 @@
                 }
 
                 let chosen = null;
-                if (substance === 'TOXIN') {
+                if (substance === "TOXIN") {
                     chosen = tubes.find(t => {
                         const target = this.organs.find(o => o.id === t.toId);
-                        return target && target.type === 'LYMPH';
+                        return target && target.type === "LYMPH";
                     });
-                } else if (substance === 'CHYME') {
+                } else if (substance === "CHYME") {
                     chosen = tubes.find(t => {
                         const target = this.organs.find(o => o.id === t.toId);
-                        return target && target.type === 'GLAND';
+                        return target && target.type === "GLAND";
                     });
-                } else if (substance === 'NEURO_FLUID') {
+                } else if (substance === "NEURO_FLUID") {
                     chosen = tubes.find(t => {
                         const target = this.organs.find(o => o.id === t.toId);
-                        return target && target.type === 'BRAIN_TANK';
+                        return target && target.type === "BRAIN_TANK";
                     });
                 }
 
@@ -696,35 +867,10 @@
                     if (o) o.buffers[substance] += amount;
                 }
             }
-
-            exciseOrgan(id) {
-                const organ = this.organs.find(o => o.id === id);
-                if (organ) {
-                    organ.health = 'HEALTHY';
-                    organ.tumorProgress = 0.0;
-                    organ.congestionTicks = 0;
-                    organ.buffers.TOXIN = 0.0;
-                    audio.playScalpel();
-                    return true;
-                }
-                return false;
-            }
-
-            injectAdrenaline() {
-                this.bpm = Math.min(170, this.bpm + 35);
-                audio.playInjection();
-            }
-
-            injectAntitoxin() {
-                this.organs.forEach(o => { o.buffers.TOXIN *= 0.25; });
-                this.tubes.forEach(t => {
-                    t.packets.forEach(p => { if (p.substance === 'TOXIN') p.amount *= 0.25; });
-                });
-                audio.playInjection();
-            }
         }
-
-        const sim = new SimulationState();
+        
+                const sim = new SimulationState();
+        window.sim = sim;
 
         const canvas = document.getElementById('sim-canvas');
         const ctx = canvas.getContext('2d');
@@ -751,9 +897,12 @@
         let ecgPhase = 0;
 
         function updateECG(dt) {
-            ecgPhase += (sim.bpm / 60.0) * dt;
-            const p = ecgPhase % 1.0;
             let val = 0;
+            if (!sim.isAlive) {
+                val = 0; // 心搏骤停平直线
+            } else if (sim.bpm > 0) {
+                ecgPhase += (sim.bpm / 60.0) * dt;
+                const p = ecgPhase % 1.0;
             if (p > 0.08 && p < 0.14) {
                 val = 0.2 * Math.sin((p - 0.08) / 0.06 * Math.PI);
             } else if (p >= 0.14 && p < 0.16) {
@@ -764,6 +913,7 @@
                 val = -0.3;
             } else if (p >= 0.28 && p < 0.38) {
                 val = 0.3 * Math.sin((p - 0.28) / 0.10 * Math.PI);
+            }
             }
 
             ecgPoints.push(val);
@@ -932,7 +1082,32 @@
         }
 
         function updateUI() {
-            document.getElementById('val-bpm').innerHTML = `${Math.round(sim.bpm)} <span class="val-unit">BPM</span>`;
+            const bpmVal = !sim.isAlive ? 0 : Math.round(sim.bpm);
+            document.getElementById('val-bpm').innerHTML = `${bpmVal} <span class="val-unit">BPM</span>`;
+
+            const alertEl = document.getElementById('alert-banner');
+            if (alertEl) {
+                if (!sim.isAlive) {
+                    alertEl.className = 'danger';
+                    alertEl.innerHTML = '⚡ 心脏骤停 (ASYSTOLE)！请立即按 [D] 电击除颤 或 [A] 肾上腺素起搏复苏！';
+                } else if (sim.isAscended) {
+                    alertEl.className = 'ascended';
+                    alertEl.innerHTML = '✦ 神经拟态高维升华已达成！永生回路自运转中';
+                } else if (sim.toxicityRatio > 0.55) {
+                    const secLeft = Math.max(0, Math.round(35.0 - sim.sepsisDuration));
+                    alertEl.className = 'danger';
+                    alertEl.innerHTML = `🚨 脓毒休克室颤危机！心率过速，距衰竭骤停仅剩 ${secLeft}s！请按 [S] 清毒或 [E] 增殖淋巴！`;
+                } else if (sim.toxicityRatio > 0.25) {
+                    alertEl.className = 'warn';
+                    alertEl.innerHTML = '⚠️ 全身酸毒上升中：请检视胃部积压并嫁接淋巴滤泡滤毒';
+                } else if (sim.isPaused) {
+                    alertEl.className = '';
+                    alertEl.innerHTML = '⏸️ 模拟已暂停 (按 Space 继续)';
+                } else {
+                    alertEl.className = '';
+                    alertEl.innerHTML = '🌱 活体稳态循环正常运转中';
+                }
+            }
             const sys = Math.round(100 + 35 * sim.pulsePower);
             const dia = Math.round(70 + 15 * sim.pulsePower);
             document.getElementById('val-bp').innerHTML = `${sys}/${dia} <span class="val-unit">mmHg</span>`;
@@ -1106,6 +1281,92 @@
 
         document.getElementById('btn-continue').addEventListener('click', () => {
             document.getElementById('ascension-modal').style.display = 'none';
+        });
+
+        // 情景预设切换
+        const sceneBtns = [
+            { id: 'btn-scene-std', name: 'standard' },
+            { id: 'btn-scene-crisis', name: 'crisis' },
+            { id: 'btn-scene-sandbox', name: 'sandbox' }
+        ];
+        sceneBtns.forEach(sb => {
+            const el = document.getElementById(sb.id);
+            if (el) {
+                el.addEventListener('click', () => {
+                    sceneBtns.forEach(b => {
+                        const bEl = document.getElementById(b.id);
+                        if (bEl) bEl.classList.remove('active');
+                    });
+                    el.classList.add('active');
+                    sim.loadScenario(sb.name);
+                    selectedOrgan = null;
+                    connectSource = null;
+                });
+            }
+        });
+
+        // 电击除颤
+        const defibBtn = document.getElementById('btn-defib');
+        if (defibBtn) {
+            defibBtn.addEventListener('click', () => {
+                audio.init();
+                sim.defibrillate();
+            });
+        }
+
+        // 暂停 / 继续
+        const pauseBtn = document.getElementById('btn-pause');
+        if (pauseBtn) {
+            pauseBtn.addEventListener('click', () => {
+                sim.isPaused = !sim.isPaused;
+                pauseBtn.innerHTML = sim.isPaused ? '▶️ 继续模拟 <span class="kbd">Space</span>' : '⏸️ 暂停模拟 <span class="kbd">Space</span>';
+            });
+        }
+
+        // 键盘全局热键
+        window.addEventListener('keydown', e => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            const k = e.key.toUpperCase();
+            if (e.key === ' ' || e.code === 'Space') {
+                e.preventDefault();
+                sim.isPaused = !sim.isPaused;
+                if (pauseBtn) {
+                    pauseBtn.innerHTML = sim.isPaused ? '▶️ 继续模拟 <span class="kbd">Space</span>' : '⏸️ 暂停模拟 <span class="kbd">Space</span>';
+                }
+            } else if (k === '1') {
+                const b = document.querySelector('.tool-btn[data-mode="select"]');
+                if (b) b.click();
+            } else if (k === '2') {
+                const b = document.querySelector('.tool-btn[data-mode="connect"]');
+                if (b) b.click();
+            } else if (k === '3') {
+                const b = document.querySelector('.tool-btn[data-mode="scalpel"]');
+                if (b) b.click();
+            } else if (k === 'Q') {
+                const b = document.querySelector('.tool-btn[data-spawn="MAW"]');
+                if (b) b.click();
+            } else if (k === 'W') {
+                const b = document.querySelector('.tool-btn[data-spawn="STOMACH"]');
+                if (b) b.click();
+            } else if (k === 'E') {
+                const b = document.querySelector('.tool-btn[data-spawn="LYMPH"]');
+                if (b) b.click();
+            } else if (k === 'R') {
+                const b = document.querySelector('.tool-btn[data-spawn="GLAND"]');
+                if (b) b.click();
+            } else if (k === 'T') {
+                const b = document.querySelector('.tool-btn[data-spawn="BRAIN_TANK"]');
+                if (b) b.click();
+            } else if (k === 'A') {
+                const b = document.getElementById('btn-adrenaline');
+                if (b) b.click();
+            } else if (k === 'S') {
+                const b = document.getElementById('btn-antitoxin');
+                if (b) b.click();
+            } else if (k === 'D') {
+                const b = document.getElementById('btn-defib');
+                if (b) b.click();
+            }
         });
     </script>
 </body>

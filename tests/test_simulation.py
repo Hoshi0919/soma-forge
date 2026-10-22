@@ -186,3 +186,31 @@ def test_multi_tube_load_balancing():
 
     # 验证两个导管都接收到了食糜流体包
     assert len(t1.packets) > 0 or len(t2.packets) > 0
+
+
+def test_defibrillation_resuscitation():
+    engine = SimulationEngine()
+    engine.vitals.is_alive = False
+    engine.vitals.is_fibrillating = True
+    engine.current_bpm = 0.0
+
+    was_dead = engine.defibrillate(energy_joules=200.0)
+    assert was_dead is True
+    assert engine.vitals.is_alive is True
+    assert engine.vitals.is_fibrillating is False
+    assert engine.current_bpm == 70.0
+
+def test_scenario_loader():
+    engine = SimulationEngine()
+    engine.load_scenario("standard")
+    assert len(engine.organs) == 5
+    assert len(engine.tubes) == 4
+
+    engine.load_scenario("crisis")
+    assert len(engine.organs) == 5
+    assert engine.vitals.is_septic is True
+    assert engine.current_bpm == 155.0
+
+    engine.load_scenario("sandbox")
+    assert len(engine.organs) == 0
+    assert len(engine.tubes) == 0

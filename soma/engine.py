@@ -58,6 +58,64 @@ class SimulationEngine:
             return self.organs[organ_id].excise_tumor()
         return False
 
+    def defibrillate(self, energy_joules: float = 200.0) -> bool:
+        """电击除颤：终止室颤与心搏骤停，重建窦性心律"""
+        was_dead = not self.vitals.is_alive
+        self.vitals.is_alive = True
+        self.vitals.is_fibrillating = False
+        self.sepsis_duration = max(0.0, self.sepsis_duration - 15.0)
+        self.current_bpm = 70.0
+        return was_dead
+
+    def load_scenario(self, scenario_name: str):
+        """加载不同情景模拟挑战"""
+        self.organs.clear()
+        self.tubes.clear()
+        self.total_harvested = 0.0
+        self.sepsis_duration = 0.0
+        self.is_ascended = False
+        self.vitals = VitalSigns()
+
+        if scenario_name == "standard":
+            self.base_bpm = 72.0
+            self.current_bpm = 72.0
+            maw = self.add_organ("maw", OrganType.MAW, 180, 240)
+            stom = self.add_organ("stom", OrganType.STOMACH, 360, 240)
+            lym = self.add_organ("lym", OrganType.LYMPH, 360, 420)
+            gland = self.add_organ("gland", OrganType.GLAND, 560, 240)
+            brain = self.add_organ("brain", OrganType.BRAIN_TANK, 760, 240)
+            maw.buffers[SubstanceType.BIOMASS] = 10.0
+            self.connect_tube("t1", "maw", "stom")
+            self.connect_tube("t2", "stom", "gland")
+            self.connect_tube("t3", "stom", "lym")
+            self.connect_tube("t4", "gland", "brain")
+        elif scenario_name == "crisis":
+            self.base_bpm = 72.0
+            self.current_bpm = 155.0
+            maw = self.add_organ("maw", OrganType.MAW, 180, 240)
+            stom = self.add_organ("stom", OrganType.STOMACH, 360, 240)
+            lym = self.add_organ("lym", OrganType.LYMPH, 360, 420)
+            gland = self.add_organ("gland", OrganType.GLAND, 560, 240)
+            brain = self.add_organ("brain", OrganType.BRAIN_TANK, 760, 240)
+            maw.buffers[SubstanceType.BIOMASS] = 30.0
+            stom.buffers[SubstanceType.BIOMASS] = 15.0
+            stom.buffers[SubstanceType.CHYME] = 10.0
+            stom.buffers[SubstanceType.TOXIN] = 25.0
+            stom.health = OrganHealth.INFLAMED
+            stom.tumor_progress = 0.70
+            lym.buffers[SubstanceType.TOXIN] = 35.0
+            gland.buffers[SubstanceType.TOXIN] = 15.0
+            gland.health = OrganHealth.INFLAMED
+            self.connect_tube("t1", "maw", "stom")
+            self.connect_tube("t2", "stom", "gland")
+            self.connect_tube("t3", "stom", "lym")
+            self.connect_tube("t4", "gland", "brain")
+            self.sepsis_duration = 20.0
+            self.vitals.is_septic = True
+        elif scenario_name == "sandbox":
+            self.base_bpm = 72.0
+            self.current_bpm = 72.0
+
     def inject_adrenaline(self, dose: float = 1.0):
         """肾上腺素急救：逆转室颤、强心升压、加速血流代谢"""
         if not self.vitals.is_alive:
