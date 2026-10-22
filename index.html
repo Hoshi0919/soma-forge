@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SomaForge | 生质工厂：原质代谢</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body {
+            background-color: #08090c;
+            color: #d1d8e0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* 顶部医疗监控仪与生命体征 HUD */
+        #vital-bar {
+            background: linear-gradient(180deg, #12151b 0%, #0d0f14 100%);
+            border-bottom: 1px solid #232a35;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+            z-index: 10;
+        }
+        .vital-group {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .vital-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .vital-label {
+            font-size: 10px;
+            color: #6d7d93;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .vital-val {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: "Courier New", Courier, monospace;
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+        .val-unit {
+            font-size: 11px;
+            color: #6d7d93;
+            font-weight: normal;
+        }
+        #ecg-container {
+            width: 180px;
+            height: 44px;
+            background: #06080a;
+            border: 1px solid #1a222d;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        #ecg-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .status-normal { color: #00f0ff; }
+        .status-warn { color: #f5a623; }
+        .status-danger { color: #ff3366; animation: pulse-danger 0.8s infinite alternate; }
+        @keyframes pulse-danger {
+            from { opacity: 0.7; }
+            to { opacity: 1.0; text-shadow: 0 0 8px #ff3366; }
+        }
+
+        #main-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            overflow: hidden;
+        }
+        #viewport {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at 50% 50%, #10141d 0%, #06070a 100%);
+        }
+        #sim-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        #toolbar {
+            position: absolute;
+            left: 16px;
+            top: 16px;
+            background: rgba(14, 18, 24, 0.88);
+            border: 1px solid #252e3d;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            backdrop-filter: blur(8px);
+            z-index: 5;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .tool-btn {
+            background: #171d26;
+            border: 1px solid #2b3648;
+            color: #c4d1e2;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.15s ease;
+        }
+        .tool-btn:hover {
+            background: #222b39;
+            border-color: #00f0ff;
+            color: #fff;
+        }
+        .tool-btn.active {
+            background: #0d2838;
+            border-color: #00f0ff;
+            color: #00f0ff;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+        .tool-sep {
+            height: 1px;
+            background: #252e3d;
+            margin: 4px 0;
+        }
+
+        #inspector {
+            position: absolute;
+            right: 16px;
+            top: 16px;
+            width: 260px;
+            background: rgba(14, 18, 24, 0.92);
+            border: 1px solid #252e3d;
+            border-radius: 8px;
+            padding: 14px;
+            backdrop-filter: blur(8px);
+            z-index: 5;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            display: none;
+        }
+        #inspector h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #00f0ff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin: 6px 0;
+            color: #8b9bb4;
+        }
+        .metric-val {
+            color: #fff;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        .progress-bar-bg {
+            height: 6px;
+            background: #161c24;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: #00f0ff;
+            width: 0%;
+            transition: width 0.2s;
+        }
+
+        #ascension-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(4, 7, 12, 0.85);
+            backdrop-filter: blur(12px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        #ascension-box {
+            background: #0c121c;
+            border: 2px solid #a855f7;
+            box-shadow: 0 0 40px rgba(168, 85, 247, 0.4);
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            max-width: 480px;
+        }
+        #ascension-box h1 {
+            color: #c084fc;
+            font-size: 24px;
+            margin-bottom: 12px;
+            text-shadow: 0 0 12px rgba(192, 132, 252, 0.8);
+        }
+        #ascension-box p {
+            font-size: 14px;
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .action-btn {
+            background: #7e22ce;
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-btn:hover {
+            background: #9333ea;
+            box-shadow: 0 0 16px rgba(147, 51, 234, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div id="vital-bar">
+        <div class="vital-group">
+            <div id="ecg-container">
+                <canvas id="ecg-canvas"></canvas>
+            </div>
+            <div class="vital-item">
+                <span class="vital-label">心率 (HEART RATE)</span>
+                <span class="vital-val status-normal" id="val-bpm">72 <span class="val-unit">BPM</span></span>
+            </div>
+            <div class="vital-item">
+                <span class="vital-label">收缩/舒张压 (BP)</span>
+                <span class="vital-val" id="val-bp">120/80 <span class="val-unit">mmHg</span></span>
+            </div>
+            <div class="vital-item">
+                <span class="vital-label">全身毒血浓度 (TOXICITY)</span>
+                <span class="vital-val status-normal" id="val-tox">0.0 <span class="val-unit">%</span></span>
+            </div>
+        </div>
+
+        <div class="vital-group">
+            <div class="vital-item" style="text-align: right;">
+                <span class="vital-label">神经晶质收获 (CRYSTALS)</span>
+                <span class="vital-val" style="color: #c084fc;" id="val-crystals">0 / 100 <span class="val-unit">units</span></span>
+            </div>
+            <div class="vital-item" style="width: 140px;">
+                <span class="vital-label">升华觉醒进度</span>
+                <div class="progress-bar-bg" style="margin-top: 4px;">
+                    <div class="progress-bar-fill" id="val-ascension-progress" style="background: #a855f7;"></div>
+                </div>
+            </div>
+            <button class="tool-btn" id="btn-audio" style="margin-left: 8px;">🔊 声效: 开启</button>
+        </div>
+    </div>
+
+    <div id="main-container">
+        <div id="toolbar">
+            <div style="font-size: 11px; color: #56657a; font-weight: bold; margin-bottom: 2px;">交互模式</div>
+            <button class="tool-btn active" data-mode="select">🔍 检视 / 移位</button>
+            <button class="tool-btn" data-mode="connect">🩸 嫁接血管</button>
+            <button class="tool-btn" data-mode="scalpel">🔪 手术刀 (切除/断管)</button>
+            <div class="tool-sep"></div>
+            <div style="font-size: 11px; color: #56657a; font-weight: bold; margin-bottom: 2px;">器官植入</div>
+            <button class="tool-btn" data-spawn="MAW">👄 摄食口 (Maw)</button>
+            <button class="tool-btn" data-spawn="STOMACH">🧪 消化胃囊 (Stomach)</button>
+            <button class="tool-btn" data-spawn="LYMPH">🛡️ 淋巴滤泡 (Lymph)</button>
+            <button class="tool-btn" data-spawn="GLAND">⚡ 神经腺体 (Gland)</button>
+            <button class="tool-btn" data-spawn="BRAIN_TANK">🧠 拟态脑囊 (Brain)</button>
+            <div class="tool-sep"></div>
+            <div style="font-size: 11px; color: #56657a; font-weight: bold; margin-bottom: 2px;">急救注射剂</div>
+            <button class="tool-btn" id="btn-adrenaline">💉 肾上腺素 (强心)</button>
+            <button class="tool-btn" id="btn-antitoxin">🧪 抗毒血清 (清毒)</button>
+        </div>
+
+        <div id="inspector">
+            <h3 id="inspect-title">器官名称</h3>
+            <div class="metric-row"><span>状态</span><span class="metric-val" id="inspect-status">正常</span></div>
+            <div class="metric-row"><span>负荷容积</span><span class="metric-val" id="inspect-load">0 / 50</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="inspect-load-bar"></div></div>
+            <div class="metric-row"><span>毒性比例</span><span class="metric-val" id="inspect-tox">0.0%</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="inspect-tox-bar" style="background: #a855f7;"></div></div>
+            <div class="metric-row"><span>癌变增生风险</span><span class="metric-val" id="inspect-tumor">0.0%</span></div>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="inspect-tumor-bar" style="background: #ff3366;"></div></div>
+            <div class="tool-sep"></div>
+            <div style="font-size: 11px; color: #8b9bb4; line-height: 1.4;" id="inspect-desc">器官功能说明...</div>
+        </div>
+
+        <div id="viewport">
+            <canvas id="sim-canvas"></canvas>
+        </div>
+    </div>
+
+    <div id="ascension-modal">
+        <div id="ascension-box">
+            <h1>✦ 神经拟态稳态升华 ✦</h1>
+            <p>已累积 100 单位纯净神经晶质，且全身毒血浓度成功压制至 15% 稳态线以下。工厂生命体已完成高维意识蜕变，达成自运转永生回路！</p>
+            <button class="action-btn" id="btn-continue">继续维持稳态观测</button>
+        </div>
+    </div>
+
+    <script>
+        class BioAudio {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            playHeartbeat(bpm) {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc1 = this.ctx.createOscillator();
+                const gain1 = this.ctx.createGain();
+                osc1.type = 'sine';
+                osc1.frequency.setValueAtTime(55, now);
+                osc1.frequency.exponentialRampToValueAtTime(30, now + 0.12);
+                gain1.gain.setValueAtTime(0.35, now);
+                gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+                osc1.connect(gain1);
+                gain1.connect(this.ctx.destination);
+                osc1.start(now);
+                osc1.stop(now + 0.15);
+
+                const osc2 = this.ctx.createOscillator();
+                const gain2 = this.ctx.createGain();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(75, now + 0.16);
+                osc2.frequency.exponentialRampToValueAtTime(35, now + 0.26);
+                gain2.gain.setValueAtTime(0.25, now + 0.16);
+                gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+                osc2.connect(gain2);
+                gain2.connect(this.ctx.destination);
+                osc2.start(now + 0.16);
+                osc2.stop(now + 0.30);
+            }
+            playScalpel() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.09);
+            }
+            playInjection() {
+                if (!this.enabled || !this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.2);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.26);
+            }
+        }
+
+        const audio = new BioAudio();
+
+        const SubstanceColors = {
+            BIOMASS: '#ff3366',
+            CHYME: '#ffb703',
+            TOXIN: '#a855f7',
+            NEURO_FLUID: '#00f0ff',
+            NEURO_CRYSTAL: '#e879f9'
+        };
+
+        const OrganDescriptions = {
+            HEART: "中央活体心脏：向所有器官供给富氧舒缩节律，维系血压基准。",
+            MAW: "摄食口：自主蠕动摄入外界初级生质 (Biomass)。",
+            STOMACH: "消化胃囊：强酸水解生质为高能食糜 (Chyme)，但伴生大量酸毒 (Toxin)。",
+            LYMPH: "淋巴滤泡：高效分解并净化毒素，维系全身免疫稳态。",
+            GLAND: "神经腺体：在极低毒环境下将高能食糜提纯为神经胶质液 (Neuro Fluid)。",
+            BRAIN_TANK: "拟态脑囊：凝华神经液为神经晶质 (Neuro Crystal)，达成稳态觉醒。"
+        };
+
+        class SimulationState {
+            constructor() {
+                this.organs = [];
+                this.tubes = [];
+                this.bpm = 72;
+                this.heartPhase = 0;
+                this.pulsePower = 0.25;
+                this.toxicityRatio = 0.0;
+                this.crystalsHarvested = 0;
+                this.isAlive = true;
+                this.isAscended = false;
+
+                this.initPreset();
+            }
+
+            initPreset() {
+                const maw = this.addOrgan('MAW', 180, 240);
+                const stom = this.addOrgan('STOMACH', 360, 240);
+                const lym = this.addOrgan('LYMPH', 360, 420);
+                const gland = this.addOrgan('GLAND', 560, 240);
+                const brain = this.addOrgan('BRAIN_TANK', 760, 240);
+
+                this.addTube(maw.id, stom.id);
+                this.addTube(stom.id, gland.id);
+                this.addTube(stom.id, lym.id);
+                this.addTube(gland.id, brain.id);
+
+                maw.buffers.BIOMASS = 10.0;
+            }
+
+            addOrgan(type, x, y) {
+                const organ = {
+                    id: 'org_' + Math.random().toString(36).substr(2, 9),
+                    type: type,
+                    x: x,
+                    y: y,
+                    capacity: 50.0,
+                    buffers: { BIOMASS: 0, CHYME: 0, TOXIN: 0, NEURO_FLUID: 0, NEURO_CRYSTAL: 0 },
+                    health: 'HEALTHY',
+                    tumorProgress: 0.0,
+                    congestionTicks: 0,
+                    totalProcessed: 0
+                };
+                this.organs.push(organ);
+                return organ;
+            }
+
+            addTube(fromId, toId) {
+                if (fromId === toId) return null;
+                const existing = this.tubes.find(t => t.fromId === fromId && t.toId === toId);
+                if (existing) return null;
+
+                const o1 = this.organs.find(o => o.id === fromId);
+                const o2 = this.organs.find(o => o.id === toId);
+                if (!o1 || !o2) return null;
+
+                const dist = Math.hypot(o2.x - o1.x, o2.y - o1.y);
+                const tube = {
+                    id: 'tube_' + Math.random().toString(36).substr(2, 9),
+                    fromId: fromId,
+                    toId: toId,
+                    length: Math.max(60, dist),
+                    packets: []
+                };
+                this.tubes.push(tube);
+                return tube;
+            }
+
+            removeOrgan(id) {
+                this.organs = this.organs.filter(o => o.id !== id);
+                this.tubes = this.tubes.filter(t => t.fromId !== id && t.toId !== id);
+            }
+
+            removeTube(id) {
+                this.tubes = this.tubes.filter(t => t.id !== id);
+            }
+
+            update(dt) {
+                if (!this.isAlive) return;
+
+                const freq = this.bpm / 60.0;
+                const prevPhase = this.heartPhase;
+                this.heartPhase = (this.heartPhase + freq * dt) % 1.0;
+                
+                if (prevPhase > 0.8 && this.heartPhase < 0.2) {
+                    audio.playHeartbeat(this.bpm);
+                }
+
+                const pulse = Math.exp(-22.0 * Math.pow(this.heartPhase - 0.15, 2));
+                this.pulsePower = 0.25 + 0.95 * pulse;
+
+                this.organs.forEach(organ => {
+                    const currentLoad = Object.values(organ.buffers).reduce((a, b) => a + b, 0);
+                    const loadRatio = currentLoad / organ.capacity;
+                    const toxRatio = currentLoad > 0.1 ? organ.buffers.TOXIN / currentLoad : 0;
+
+                    if (organ.health === 'TUMOROUS') {
+                        organ.buffers.TOXIN += 1.2 * dt;
+                        return;
+                    }
+
+                    if (loadRatio > 0.85 || toxRatio > 0.35) {
+                        organ.congestionTicks++;
+                        if (organ.congestionTicks > 30) {
+                            organ.tumorProgress = Math.min(1.0, organ.tumorProgress + 0.08 * dt);
+                            if (organ.tumorProgress >= 1.0) {
+                                organ.health = 'TUMOROUS';
+                            } else {
+                                organ.health = 'INFLAMED';
+                            }
+                        }
+                    } else {
+                        organ.congestionTicks = Math.max(0, organ.congestionTicks - 1);
+                        organ.tumorProgress = Math.max(0, organ.tumorProgress - 0.03 * dt);
+                        if (organ.tumorProgress === 0 && organ.health === 'INFLAMED') {
+                            organ.health = 'HEALTHY';
+                        }
+                    }
+
+                    const speed = Math.max(0.3, this.pulsePower);
+
+                    if (organ.type === 'MAW') {
+                        // 摄食口动态反馈：如果自身充血过高，自主减速进食
+                        const feedRate = loadRatio > 0.6 ? 1.0 : 3.0;
+                        organ.buffers.BIOMASS += feedRate * speed * dt;
+                        if (organ.buffers.BIOMASS > 0.5) {
+                            const sendAmt = Math.min(organ.buffers.BIOMASS, 3.2 * speed * dt);
+                            organ.buffers.BIOMASS -= sendAmt;
+                            this.dispatchPacket(organ.id, 'BIOMASS', sendAmt);
+                        }
+                    } else if (organ.type === 'STOMACH') {
+                        const bio = organ.buffers.BIOMASS;
+                        const react = Math.min(bio, 4.0 * speed * dt);
+                        if (react > 0.02) {
+                            organ.buffers.BIOMASS -= react;
+                            organ.buffers.CHYME += react * 0.70;
+                            organ.buffers.TOXIN += react * 0.30;
+                        }
+                        if (organ.buffers.CHYME > 0.2) {
+                            const amt = Math.min(organ.buffers.CHYME, 3.5 * speed * dt);
+                            organ.buffers.CHYME -= amt;
+                            this.dispatchPacket(organ.id, 'CHYME', amt);
+                        }
+                        if (organ.buffers.TOXIN > 0.2) {
+                            const amt = Math.min(organ.buffers.TOXIN, 3.0 * speed * dt);
+                            organ.buffers.TOXIN -= amt;
+                            this.dispatchPacket(organ.id, 'TOXIN', amt);
+                        }
+                    } else if (organ.type === 'LYMPH') {
+                        const tox = organ.buffers.TOXIN;
+                        const filtered = Math.min(tox, 6.0 * speed * dt);
+                        if (filtered > 0.01) {
+                            organ.buffers.TOXIN -= filtered;
+                        }
+                    } else if (organ.type === 'GLAND') {
+                        const eff = toxRatio > 0.1 ? 0.2 : 1.0;
+                        const chyme = organ.buffers.CHYME;
+                        const syn = Math.min(chyme, 3.5 * eff * speed * dt);
+                        if (syn > 0.02) {
+                            organ.buffers.CHYME -= syn;
+                            organ.buffers.NEURO_FLUID += syn * 0.65;
+                        }
+                        if (organ.buffers.NEURO_FLUID > 0.2) {
+                            const amt = Math.min(organ.buffers.NEURO_FLUID, 3.0 * speed * dt);
+                            organ.buffers.NEURO_FLUID -= amt;
+                            this.dispatchPacket(organ.id, 'NEURO_FLUID', amt);
+                        }
+                    } else if (organ.type === 'BRAIN_TANK') {
+                        const neuro = organ.buffers.NEURO_FLUID;
+                        const cry = Math.min(neuro, 2.5 * speed * dt);
+                        if (cry > 0.02) {
+                            organ.buffers.NEURO_FLUID -= cry;
+                            organ.buffers.NEURO_CRYSTAL += cry * 0.50;
+                        }
+                        if (organ.buffers.NEURO_CRYSTAL > 0.2) {
+                            this.crystalsHarvested += organ.buffers.NEURO_CRYSTAL;
+                            organ.buffers.NEURO_CRYSTAL = 0;
+                        }
+                    }
+                });
+
+                this.tubes.forEach(tube => {
+                    const speedFactor = 65.0 * Math.max(0.25, this.pulsePower);
+                    const delta = (speedFactor / tube.length) * dt;
+
+                    const arrived = [];
+                    tube.packets.forEach(p => {
+                        p.position += delta;
+                        if (p.position >= 1.0) {
+                            arrived.push(p);
+                        }
+                    });
+
+                    tube.packets = tube.packets.filter(p => p.position < 1.0);
+
+                    const target = this.organs.find(o => o.id === tube.toId);
+                    if (target) {
+                        arrived.forEach(p => {
+                            const cur = Object.values(target.buffers).reduce((a, b) => a + b, 0);
+                            const space = target.capacity - cur;
+                            const accept = Math.min(p.amount, Math.max(0, space));
+                            target.buffers[p.substance] += accept;
+                            const rem = p.amount - accept;
+                            if (rem > 0.01) {
+                                tube.packets.push({ substance: p.substance, amount: rem, position: 0.96 });
+                            }
+                        });
+                    }
+                });
+
+                let totalToxin = 0;
+                let totalFluid = 40.0;
+                this.organs.forEach(o => {
+                    totalToxin += o.buffers.TOXIN;
+                    totalFluid += Object.values(o.buffers).reduce((a, b) => a + b, 0);
+                });
+                this.tubes.forEach(t => {
+                    t.packets.forEach(p => {
+                        totalFluid += p.amount;
+                        if (p.substance === 'TOXIN') totalToxin += p.amount;
+                    });
+                });
+
+                this.toxicityRatio = Math.min(1.0, totalToxin / totalFluid);
+
+                if (this.toxicityRatio > 0.55) {
+                    this.bpm = Math.min(185, this.bpm + 10.0 * dt);
+                } else if (this.toxicityRatio > 0.25) {
+                    const target = 72 + (this.toxicityRatio - 0.25) * 120;
+                    this.bpm += (target - this.bpm) * 0.2 * dt;
+                } else {
+                    this.bpm += (72 - this.bpm) * 0.3 * dt;
+                }
+
+                if (this.crystalsHarvested >= 100 && this.toxicityRatio < 0.15 && !this.isAscended) {
+                    this.isAscended = true;
+                    document.getElementById('ascension-modal').style.display = 'flex';
+                }
+            }
+
+            dispatchPacket(fromId, substance, amount) {
+                const tubes = this.tubes.filter(t => t.fromId === fromId);
+                if (tubes.length === 0) {
+                    const o = this.organs.find(x => x.id === fromId);
+                    if (o) o.buffers[substance] += amount;
+                    return;
+                }
+
+                let chosen = null;
+                if (substance === 'TOXIN') {
+                    chosen = tubes.find(t => {
+                        const target = this.organs.find(o => o.id === t.toId);
+                        return target && target.type === 'LYMPH';
+                    });
+                } else if (substance === 'CHYME') {
+                    chosen = tubes.find(t => {
+                        const target = this.organs.find(o => o.id === t.toId);
+                        return target && target.type === 'GLAND';
+                    });
+                } else if (substance === 'NEURO_FLUID') {
+                    chosen = tubes.find(t => {
+                        const target = this.organs.find(o => o.id === t.toId);
+                        return target && target.type === 'BRAIN_TANK';
+                    });
+                }
+
+                if (!chosen) {
+                    tubes.sort((a, b) => a.packets.length - b.packets.length);
+                    chosen = tubes[0];
+                }
+
+                if (chosen.packets.length < 15) {
+                    chosen.packets.push({ substance, amount, position: 0.0 });
+                } else {
+                    const o = this.organs.find(x => x.id === fromId);
+                    if (o) o.buffers[substance] += amount;
+                }
+            }
+
+            exciseOrgan(id) {
+                const organ = this.organs.find(o => o.id === id);
+                if (organ) {
+                    organ.health = 'HEALTHY';
+                    organ.tumorProgress = 0.0;
+                    organ.congestionTicks = 0;
+                    organ.buffers.TOXIN = 0.0;
+                    audio.playScalpel();
+                    return true;
+                }
+                return false;
+            }
+
+            injectAdrenaline() {
+                this.bpm = Math.min(170, this.bpm + 35);
+                audio.playInjection();
+            }
+
+            injectAntitoxin() {
+                this.organs.forEach(o => { o.buffers.TOXIN *= 0.25; });
+                this.tubes.forEach(t => {
+                    t.packets.forEach(p => { if (p.substance === 'TOXIN') p.amount *= 0.25; });
+                });
+                audio.playInjection();
+            }
+        }
+
+        const sim = new SimulationState();
+
+        const canvas = document.getElementById('sim-canvas');
+        const ctx = canvas.getContext('2d');
+        const ecgCanvas = document.getElementById('ecg-canvas');
+        const ecgCtx = ecgCanvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            ecgCanvas.width = ecgCanvas.parentElement.clientWidth;
+            ecgCanvas.height = ecgCanvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let currentMode = 'select';
+        let selectedOrgan = null;
+        let connectSource = null;
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+        let mousePos = { x: 0, y: 0 };
+
+        const ecgPoints = [];
+        let ecgPhase = 0;
+
+        function updateECG(dt) {
+            ecgPhase += (sim.bpm / 60.0) * dt;
+            const p = ecgPhase % 1.0;
+            let val = 0;
+            if (p > 0.08 && p < 0.14) {
+                val = 0.2 * Math.sin((p - 0.08) / 0.06 * Math.PI);
+            } else if (p >= 0.14 && p < 0.16) {
+                val = -0.15;
+            } else if (p >= 0.16 && p < 0.20) {
+                val = 1.0;
+            } else if (p >= 0.20 && p < 0.23) {
+                val = -0.3;
+            } else if (p >= 0.28 && p < 0.38) {
+                val = 0.3 * Math.sin((p - 0.28) / 0.10 * Math.PI);
+            }
+
+            ecgPoints.push(val);
+            if (ecgPoints.length > 180) ecgPoints.shift();
+
+            ecgCtx.fillStyle = '#06080a';
+            ecgCtx.fillRect(0, 0, ecgCanvas.width, ecgCanvas.height);
+
+            ecgCtx.strokeStyle = 'rgba(0, 240, 255, 0.08)';
+            ecgCtx.lineWidth = 1;
+            for (let x = 0; x < ecgCanvas.width; x += 15) {
+                ecgCtx.beginPath(); ecgCtx.moveTo(x, 0); ecgCtx.lineTo(x, ecgCanvas.height); ecgCtx.stroke();
+            }
+            for (let y = 0; y < ecgCanvas.height; y += 15) {
+                ecgCtx.beginPath(); ecgCtx.moveTo(0, y); ecgCtx.lineTo(ecgCanvas.width, y); ecgCtx.stroke();
+            }
+
+            ecgCtx.strokeStyle = sim.toxicityRatio > 0.5 ? '#ff3366' : '#00f0ff';
+            ecgCtx.lineWidth = 1.5;
+            ecgCtx.beginPath();
+            const midY = ecgCanvas.height * 0.65;
+            ecgPoints.forEach((pt, i) => {
+                const x = (i / 180) * ecgCanvas.width;
+                const y = midY - pt * (ecgCanvas.height * 0.45);
+                if (i === 0) ecgCtx.moveTo(x, y);
+                else ecgCtx.lineTo(x, y);
+            });
+            ecgCtx.stroke();
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 51, 102, 0.03)';
+            ctx.lineWidth = 1.5;
+            const t = Date.now() * 0.001;
+            for (let i = 0; i < 6; i++) {
+                ctx.beginPath();
+                ctx.arc(canvas.width * 0.5, canvas.height * 0.5, 100 + i * 80 + Math.sin(t + i) * 6, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            sim.tubes.forEach(tube => {
+                const o1 = sim.organs.find(o => o.id === tube.fromId);
+                const o2 = sim.organs.find(o => o.id === tube.toId);
+                if (!o1 || !o2) return;
+
+                const dx = o2.x - o1.x;
+                const dy = o2.y - o1.y;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(o1.x, o1.y);
+                ctx.lineTo(o2.x, o2.y);
+                ctx.strokeStyle = '#2b1b26';
+                ctx.lineWidth = 16 + sim.pulsePower * 4;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(o1.x, o1.y);
+                ctx.lineTo(o2.x, o2.y);
+                ctx.strokeStyle = '#4d1222';
+                ctx.lineWidth = 10;
+                ctx.stroke();
+
+                tube.packets.forEach(p => {
+                    const px = o1.x + dx * p.position;
+                    const py = o1.y + dy * p.position;
+                    const rad = Math.min(8, 3 + p.amount * 1.5);
+
+                    ctx.beginPath();
+                    ctx.arc(px, py, rad, 0, Math.PI * 2);
+                    ctx.fillStyle = SubstanceColors[p.substance] || '#fff';
+                    ctx.shadowColor = ctx.fillStyle;
+                    ctx.shadowBlur = 10;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+
+                ctx.restore();
+            });
+
+            if (currentMode === 'connect' && connectSource) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(connectSource.x, connectSource.y);
+                ctx.lineTo(mousePos.x, mousePos.y);
+                ctx.strokeStyle = 'rgba(0, 240, 255, 0.6)';
+                ctx.lineWidth = 4;
+                ctx.setLineDash([8, 4]);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            sim.organs.forEach(organ => {
+                ctx.save();
+                ctx.translate(organ.x, organ.y);
+
+                if (selectedOrgan && selectedOrgan.id === organ.id) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 42, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#00f0ff';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 4]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                const scale = 1.0 + (sim.pulsePower - 0.25) * 0.12;
+                ctx.scale(scale, scale);
+
+                let organColor = '#1e2430';
+                let borderColor = '#3b485d';
+                if (organ.health === 'INFLAMED') {
+                    organColor = '#4a1525';
+                    borderColor = '#f5a623';
+                } else if (organ.health === 'TUMOROUS') {
+                    organColor = '#3b0d40';
+                    borderColor = '#ff3366';
+                }
+
+                ctx.beginPath();
+                ctx.arc(0, 0, 32, 0, Math.PI * 2);
+                ctx.fillStyle = organColor;
+                ctx.fill();
+                ctx.strokeStyle = borderColor;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                if (organ.tumorProgress > 0) {
+                    const nodules = 5;
+                    ctx.fillStyle = '#ff3366';
+                    for (let n = 0; n < nodules; n++) {
+                        const ang = (n / nodules) * Math.PI * 2 + t * 0.5;
+                        const r = 28 + organ.tumorProgress * 12;
+                        ctx.beginPath();
+                        ctx.arc(Math.cos(ang) * r, Math.sin(ang) * r, 5 * organ.tumorProgress, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                ctx.font = '22px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const icons = {
+                    MAW: '👄',
+                    STOMACH: '🧪',
+                    LYMPH: '🛡️',
+                    GLAND: '⚡',
+                    BRAIN_TANK: '🧠'
+                };
+                ctx.fillText(icons[organ.type] || '⚪', 0, -2);
+
+                const load = Object.values(organ.buffers).reduce((a, b) => a + b, 0);
+                const loadWidth = (load / organ.capacity) * 50;
+                ctx.fillStyle = '#10141b';
+                ctx.fillRect(-25, 24, 50, 4);
+                ctx.fillStyle = organ.health === 'TUMOROUS' ? '#ff3366' : '#00f0ff';
+                ctx.fillRect(-25, 24, loadWidth, 4);
+
+                ctx.restore();
+            });
+        }
+
+        function updateUI() {
+            document.getElementById('val-bpm').innerHTML = `${Math.round(sim.bpm)} <span class="val-unit">BPM</span>`;
+            const sys = Math.round(100 + 35 * sim.pulsePower);
+            const dia = Math.round(70 + 15 * sim.pulsePower);
+            document.getElementById('val-bp').innerHTML = `${sys}/${dia} <span class="val-unit">mmHg</span>`;
+            
+            const toxEl = document.getElementById('val-tox');
+            const toxPct = (sim.toxicityRatio * 100).toFixed(1);
+            toxEl.innerHTML = `${toxPct} <span class="val-unit">%</span>`;
+            if (sim.toxicityRatio > 0.5) {
+                toxEl.className = 'vital-val status-danger';
+            } else if (sim.toxicityRatio > 0.25) {
+                toxEl.className = 'vital-val status-warn';
+            } else {
+                toxEl.className = 'vital-val status-normal';
+            }
+
+            document.getElementById('val-crystals').innerHTML = `${Math.floor(sim.crystalsHarvested)} / 100 <span class="val-unit">units</span>`;
+            const prog = Math.min(100, (sim.crystalsHarvested / 100) * 100);
+            document.getElementById('val-ascension-progress').style.width = `${prog}%`;
+
+            if (selectedOrgan) {
+                const o = sim.organs.find(x => x.id === selectedOrgan.id);
+                if (!o) {
+                    selectedOrgan = null;
+                    document.getElementById('inspector').style.display = 'none';
+                    return;
+                }
+                document.getElementById('inspector').style.display = 'block';
+                document.getElementById('inspect-title').innerText = `${o.type} (#${o.id.substr(4, 4)})`;
+                
+                const statEl = document.getElementById('inspect-status');
+                statEl.innerText = o.health === 'HEALTHY' ? '稳态健康' : (o.health === 'INFLAMED' ? '充血肿胀' : '恶性癌变');
+                statEl.style.color = o.health === 'HEALTHY' ? '#00f0ff' : (o.health === 'INFLAMED' ? '#f5a623' : '#ff3366');
+
+                const cur = Object.values(o.buffers).reduce((a, b) => a + b, 0);
+                document.getElementById('inspect-load').innerText = `${cur.toFixed(1)} / ${o.capacity}`;
+                document.getElementById('inspect-load-bar').style.width = `${Math.min(100, (cur / o.capacity) * 100)}%`;
+
+                const toxPct = cur > 0.1 ? (o.buffers.TOXIN / cur * 100).toFixed(1) : '0.0';
+                document.getElementById('inspect-tox').innerText = `${toxPct}%`;
+                document.getElementById('inspect-tox-bar').style.width = `${toxPct}%`;
+
+                const tumPct = (o.tumorProgress * 100).toFixed(1);
+                document.getElementById('inspect-tumor').innerText = `${tumPct}%`;
+                document.getElementById('inspect-tumor-bar').style.width = `${tumPct}%`;
+
+                document.getElementById('inspect-desc').innerText = OrganDescriptions[o.type] || '';
+            } else {
+                document.getElementById('inspector').style.display = 'none';
+            }
+        }
+
+        let lastTime = performance.now();
+        function loop(timestamp) {
+            const dt = Math.min(0.1, (timestamp - lastTime) / 1000);
+            lastTime = timestamp;
+
+            sim.update(dt);
+            updateECG(dt);
+            render();
+            updateUI();
+
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            mousePos.x = e.clientX - rect.left;
+            mousePos.y = e.clientY - rect.top;
+
+            if (isDragging && selectedOrgan && currentMode === 'select') {
+                selectedOrgan.x = mousePos.x - dragOffset.x;
+                selectedOrgan.y = mousePos.y - dragOffset.y;
+            }
+        });
+
+        canvas.addEventListener('mousedown', e => {
+            audio.init();
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const clickedOrgan = sim.organs.find(o => Math.hypot(o.x - x, o.y - y) <= 34);
+
+            if (currentMode === 'select') {
+                if (clickedOrgan) {
+                    selectedOrgan = clickedOrgan;
+                    isDragging = true;
+                    dragOffset.x = x - clickedOrgan.x;
+                    dragOffset.y = y - clickedOrgan.y;
+                } else {
+                    selectedOrgan = null;
+                }
+            } else if (currentMode === 'connect') {
+                if (clickedOrgan) {
+                    if (!connectSource) {
+                        connectSource = clickedOrgan;
+                    } else {
+                        if (connectSource.id !== clickedOrgan.id) {
+                            sim.addTube(connectSource.id, clickedOrgan.id);
+                        }
+                        connectSource = null;
+                    }
+                } else {
+                    connectSource = null;
+                }
+            } else if (currentMode === 'scalpel') {
+                if (clickedOrgan) {
+                    sim.exciseOrgan(clickedOrgan.id);
+                } else {
+                    sim.tubes.forEach(tube => {
+                        const o1 = sim.organs.find(o => o.id === tube.fromId);
+                        const o2 = sim.organs.find(o => o.id === tube.toId);
+                        if (!o1 || !o2) return;
+                        const dist = pointToSegmentDist(x, y, o1.x, o1.y, o2.x, o2.y);
+                        if (dist < 14) {
+                            sim.removeTube(tube.id);
+                            audio.playScalpel();
+                        }
+                    });
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        function pointToSegmentDist(px, py, x1, y1, x2, y2) {
+            const l2 = Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2);
+            if (l2 === 0) return Math.hypot(px - x1, py - y1);
+            let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return Math.hypot(px - (x1 + t * (x2 - x1)), py - (y1 + t * (y2 - y1)));
+        }
+
+        document.querySelectorAll('.tool-btn[data-mode]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tool-btn[data-mode]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentMode = btn.dataset.mode;
+                connectSource = null;
+            });
+        });
+
+        document.querySelectorAll('.tool-btn[data-spawn]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const type = btn.dataset.spawn;
+                const newOrg = sim.addOrgan(type, canvas.width / 2 + (Math.random() - 0.5) * 120, canvas.height / 2 + (Math.random() - 0.5) * 120);
+                selectedOrgan = newOrg;
+                currentMode = 'select';
+                document.querySelectorAll('.tool-btn[data-mode]').forEach(b => b.classList.remove('active'));
+                document.querySelector('.tool-btn[data-mode="select"]').classList.add('active');
+            });
+        });
+
+        document.getElementById('btn-adrenaline').addEventListener('click', () => {
+            audio.init();
+            sim.injectAdrenaline();
+        });
+        document.getElementById('btn-antitoxin').addEventListener('click', () => {
+            audio.init();
+            sim.injectAntitoxin();
+        });
+
+        document.getElementById('btn-audio').addEventListener('click', e => {
+            audio.init();
+            audio.enabled = !audio.enabled;
+            e.target.innerText = audio.enabled ? '🔊 声效: 开启' : '🔇 声效: 静音';
+        });
+
+        document.getElementById('btn-continue').addEventListener('click', () => {
+            document.getElementById('ascension-modal').style.display = 'none';
+        });
+    </script>
+</body>
+</html>
